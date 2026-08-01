@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Particle Field — EXP.01 · ROSI Lab</title>
+    <meta
+      name="description"
+      content="A real-time WebGL particle experiment: 60,000 particles morphing between sphere, ocean, glyph and vortex — built with Three.js custom shaders and GSAP-driven uniforms."
+    />
+    <meta name="theme-color" content="#050505" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Particle Field — EXP.01 · ROSI Lab" />
+    <meta
+      property="og:description"
+      content="60,000 particles, four morph states, one cursor. A Three.js + GSAP experiment by ROSI Lab."
+    />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "CreativeWork",
+        "name": "Particle Field — EXP.01",
+        "description": "Interactive WebGL particle system morphing between four states, built with Three.js custom shaders and GSAP.",
+        "creator": { "@type": "Organization", "name": "ROSI Lab" },
+        "genre": "Interactive WebGL experiment"
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#about">Skip to explanation</a>
+
+    <!-- Fullscreen WebGL stage -->
+    <div class="stage" id="stage">
+      <canvas id="gl" aria-hidden="true"></canvas>
+      <p class="sr-only">
+        Decorative real-time particle animation. Tens of thousands of glowing
+        particles form a sphere, an ocean surface, the word ROSI and a vortex,
+        reacting to the cursor. All controls are available as buttons and
+        sliders below.
+      </p>
+
+      <!-- HUD frame ticks -->
+      <div class="frame" aria-hidden="true">
+        <i></i><i></i><i></i><i></i>
+      </div>
+
+      <!-- Top-left: identity -->
+      <header class="hud hud--tl">
+        <p class="eyebrow">ROSI Lab — EXP.01</p>
+        <h1 class="title">Particle&nbsp;Field</h1>
+      </header>
+
+      <!-- Top-right: live telemetry -->
+      <aside class="hud hud--tr" aria-label="Live render statistics">
+        <p><span class="k">FPS</span> <output id="statFps" aria-live="off">—</output></p>
+        <p><span class="k">PTS</span> <output id="statPts" aria-live="off">—</output></p>
+        <p><span class="k">DPR</span> <output id="statDpr" aria-live="off">—</output></p>
+      </aside>
+
+      <!-- Hint -->
+      <p class="hint" id="hint">Move your cursor — the field responds</p>
+
+      <!-- Bottom: morph state scrubber (signature element) -->
+      <nav class="scrubber" aria-label="Morph states">
+        <button class="state" data-shape="sphere" aria-pressed="true">
+          <span class="state__idx">01</span>
+          <span class="state__name">Sphere</span>
+          <span class="state__bar" aria-hidden="true"></span>
+        </button>
+        <button class="state" data-shape="ocean" aria-pressed="false">
+          <span class="state__idx">02</span>
+          <span class="state__name">Ocean</span>
+          <span class="state__bar" aria-hidden="true"></span>
+        </button>
+        <button class="state" data-shape="glyph" aria-pressed="false">
+          <span class="state__idx">03</span>
+          <span class="state__name">Glyph</span>
+          <span class="state__bar" aria-hidden="true"></span>
+        </button>
+        <button class="state" data-shape="vortex" aria-pressed="false">
+          <span class="state__idx">04</span>
+          <span class="state__name">Vortex</span>
+          <span class="state__bar" aria-hidden="true"></span>
+        </button>
+      </nav>
+
+      <!-- Control panel -->
+      <button class="panel-toggle" id="panelToggle" aria-expanded="false" aria-controls="panel">
+        Tune
+      </button>
+      <section class="panel" id="panel" aria-label="Simulation controls">
+        <h2 class="panel__title">Parameters</h2>
+
+        <fieldset class="panel__group">
+          <legend>Density</legend>
+          <div class="seg">
+            <label><input type="radio" name="density" value="30000" /><span>30k</span></label>
+            <label><input type="radio" name="density" value="60000" checked /><span>60k</span></label>
+            <label><input type="radio" name="density" value="100000" /><span>100k</span></label>
+          </div>
+        </fieldset>
+
+        <div class="panel__group">
+          <label class="slider">
+            <span class="slider__head">Repulsion force <output id="outStrength">0.55</output></span>
+            <input id="ctlStrength" type="range" min="0" max="1.2" step="0.01" value="0.55" />
+          </label>
+          <label class="slider">
+            <span class="slider__head">Repulsion radius <output id="outRadius">0.80</output></span>
+            <input id="ctlRadius" type="range" min="0.2" max="1.6" step="0.01" value="0.8" />
+          </label>
+          <label class="slider">
+            <span class="slider__head">Morph speed <output id="outSpeed">1.00</output></span>
+            <input id="ctlSpeed" type="range" min="0.5" max="2" step="0.05" value="1" />
+          </label>
+        </div>
+
+        <fieldset class="panel__group">
+          <legend>Palette</legend>
+          <div class="seg">
+            <label><input type="radio" name="theme" value="ember" checked /><span>Ember</span></label>
+            <label><input type="radio" name="theme" value="ion" /><span>Ion</span></label>
+            <label><input type="radio" name="theme" value="mono" /><span>Mono</span></label>
+          </div>
+        </fieldset>
+
+        <label class="check">
+          <input id="ctlCycle" type="checkbox" checked />
+          <span>Auto-cycle states every 9s</span>
+        </label>
+      </section>
+
+      <a class="scroll-cue" href="#about">How it works ↓</a>
+    </div>
+
+    <!-- Technical explanation -->
+    <main id="about" class="about">
+      <div class="about__inner">
+        <p class="eyebrow">Under the hood</p>
+        <h2>Four techniques, one field</h2>
+
+        <div class="tech-grid">
+          <article class="tech">
+            <h3><span aria-hidden="true">a.</span> Delta-time render loop</h3>
+            <p>
+              Every frame advances the simulation by the real elapsed time, not
+              by frame count — motion is identical on a 60&nbsp;Hz laptop and a
+              144&nbsp;Hz display. Damping uses
+              <code>1&nbsp;−&nbsp;e<sup>−k·dt</sup></code> so cursor smoothing
+              stays framerate-independent too.
+            </p>
+          </article>
+          <article class="tech">
+            <h3><span aria-hidden="true">b.</span> GPU morphing</h3>
+            <p>
+              Each particle carries two positions in a
+              <code>BufferGeometry</code> — where it is and where it is going.
+              A vertex shader mixes them with a per-particle stagger, so shapes
+              dissolve edge-first instead of sliding as one rigid block.
+            </p>
+          </article>
+          <article class="tech">
+            <h3><span aria-hidden="true">c.</span> GSAP-driven uniforms</h3>
+            <p>
+              GSAP never touches the DOM here. It tweens a single
+              <code>uProgress</code> uniform from 0 to 1 and the GPU does the
+              rest — one interpolated number choreographs 100,000 particles.
+            </p>
+          </article>
+          <article class="tech">
+            <h3><span aria-hidden="true">d.</span> Adaptive performance</h3>
+            <p>
+              The field detects coarse pointers and starts mobile devices at a
+              lower density, caps <code>devicePixelRatio</code> at 2, and
+              honours <code>prefers-reduced-motion</code> by disabling
+              auto-cycle and ambient drift.
+            </p>
+          </article>
+        </div>
+
+        <figure class="code">
+          <figcaption>The loop, reduced to its essence</figcaption>
+          <pre><code>timer.update()
+const dt = Math.min(timer.getDelta(), 1 / 30)
+
+// framerate-independent smoothing
+const ease = 1 - Math.exp(-7 * dt)
+cursor.lerp(target, ease)
+
+field.update(timer.getElapsed(), cursor)
+renderer.render(scene, camera)</code></pre>
+        </figure>
+
+        <footer class="foot">
+          <p>Built with Three.js + GSAP · UI hand-rolled, no component library</p>
+          <p>© 2026 ROSI Lab</p>
+        </footer>
+      </div>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
